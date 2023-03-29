@@ -85,7 +85,9 @@ class CNNAgent(BaseAgent):
             q_prime = self.q_values.forward(next_obs) #Q(s', pour tout a)
             a_prime = self.get_action(next_obs,  possible_actions, eps=0) #a'
             y = reward + self.gamma * q_prime[a_prime] #y = r + gamma * Q(s', a')
+
             y_hat = self.q_values.forward(obs)[action] #y_hat = Q(s, a)
+            
             loss = self.loss(y_hat, y)
         else:
             y = torch.tensor(reward).float()
