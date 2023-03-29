@@ -51,10 +51,11 @@ class Connect4Env(gym.Env):
         """
         Initialises the Connect 4 gameboard.
         """
-        self.board = np.full((self.width, self.height), -1)
+        self.board = np.full((self.width, self.height), 0)
 
         self.current_player = 0 # Player 1 (represented by value 0) will move now
         self.winner = None
+        return self.board
         return self.get_player_observations()
 
     def filter_observation_player_perspective(self, player: int) -> List[np.ndarray]:
@@ -90,22 +91,22 @@ class Connect4Env(gym.Env):
         specified by param movecol.
         :param movecol: column over which a chip will be dropped
         """
-        if not(movecol >= 0 and movecol <= self.width and self.board[movecol][self.height - 1] == -1):
+        if not(movecol >= 0 and movecol <= self.width and self.board[movecol][self.height - 1] == 0):
             raise IndexError(f'Invalid move. tried to place a chip on column {movecol} which is already full. Valid moves are: {self.get_moves()}')
         row = self.height - 1
-        while row >= 0 and self.board[movecol][row] == -1:
+        while row >= 0 and self.board[movecol][row] == 0:
             row -= 1
 
         row += 1
 
-        self.board[movecol][row] = self.current_player
+        self.board[movecol][row] = self.current_player + 1
         self.current_player = 1 - self.current_player
 
         self.winner, reward_vector = self.check_for_episode_termination(movecol, row)
 
         info = {'legal_actions': self.get_moves(),
                 'current_player': self.current_player}
-        return self.get_player_observations(), reward_vector, \
+        return self.board, reward_vector, \
                self.winner is not None, info
 
     def check_for_episode_termination(self, movecol, row):
@@ -128,7 +129,7 @@ class Connect4Env(gym.Env):
         """
         if self.winner is not None:
             return []
-        return [col for col in range(self.width) if self.board[col][self.height - 1] == -1]
+        return [col for col in range(self.width) if self.board[col][self.height - 1] == 0]
 
     def does_move_win(self, x, y):
         """
@@ -168,7 +169,7 @@ class Connect4Env(gym.Env):
         s = ""
         for x in range(self.height - 1, -1, -1):
             for y in range(self.width):
-                s += {-1: Fore.WHITE + '.', 0: Fore.RED + 'X', 1: Fore.YELLOW + 'O'}[self.board[y][x]]
+                s += {0: Fore.WHITE + '. ', 1: Fore.RED + 'X ', 2: Fore.YELLOW + 'O '}[self.board[y][x]]
                 s += Fore.RESET
             s += "\n"
         print(s)

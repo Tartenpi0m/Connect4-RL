@@ -1,25 +1,27 @@
 import numpy as np
 from collections import defaultdict
 
-class QLearner(): 
+#CNN model for Q-learning for Connect4 with Pytorch
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import torch.optim as optim
+
+class BaseAgent(): 
     """
         Stores the data and computes the observed returns.
     """
-    q_values = None
 
     def __init__(self, 
-                 player,# 1 or 2
                  action_space, 
                  observation_space, 
                  gamma=0.99, 
                  lr=0.1,
                  eps_init=.5, 
                  eps_min=1e-5,
-                 eps_step=1-3,
-                 name='Q-learning'):
+                 eps_step=1e-3,
+                 name='AbstractBaseAgent'):
         
-        self.player = player
-        self.player_index = player - 1
         self.action_space = action_space
         self.observation_space = observation_space
         self.gamma = gamma
@@ -30,6 +32,7 @@ class QLearner():
         self.eps_step = eps_step
 
         self.name = name
+        self.q_values = None
         
         self.reset()
     
@@ -41,25 +44,76 @@ class QLearner():
 
         if np.random.random() < self.eps: 
             return np.random.choice(possible_actions)
-            #return self.action_space[self.player_index].sample()
         else:
-            b = QLearner.q_values[obs]
-            b = b[np.isin(np.arange(len(b)), possible_actions)]
-            return np.random.choice(np.flatnonzero(b == np.max(b))) # argmax with random tie-breaking
+            b = self.q_values.forward(obs).detach().numpy()
+            for i in range(len(b)):
+                if i not in possible_actions:
+                    b[i] = -np.inf
+            return np.random.choice(np.flatnonzero(b == np.max(b)))
         
     def get_action(self, obs, possible_actions): 
         return self.eps_greedy(obs, possible_actions)
         
     def update(self, obs, action, reward, terminated, next_obs):
-        if not terminated:
-            QLearner.q_values[obs][action] += self.lr * (reward + self.gamma * np.max(QLearner.q_values[next_obs]) - QLearner.q_values[obs][action])
-        else: #if final state, there is no next state
-            QLearner.q_values[obs][action] += self.lr * (reward - QLearner.q_values[obs][action])
-
-        self.epsilon_decay()
+        
+        raise NotImplementedError
         
     def epsilon_decay(self):
         self.eps = max(self.eps - self.eps_step, self.eps_min)
         
     def reset(self):
-        QLearner.q_values = defaultdict(lambda: np.zeros(self.action_space[self.player_index].n))
+        raise NotImplementedError
+        
+class CNNAgent(BaseAgent):
+
+
+    def __init__(self, action_space, observation_space, gamma=0.99, lr=0.1, eps_init=0.5, eps_min=0.00001, eps_step=1e-3, name='DeepAgent'):
+        super().__init__(action_space, observation_space, gamma, lr, eps_init, eps_min, eps_step, name)
+
+
+    def reset(self):
+
+        self.q_values = Net()
+        self.optimizer = optim.Adam(self.q_values.parameters(), lr=self.lr)
+        self.loss = nn.MSELoss()
+    
+    def update(self, obs, action, reward, terminated, next_obs, possible_actions):
+        self.optimizer.zero_grad()
+
+        if not terminated:
+            q_prime = self.q_values.forward(next_obs) #Q(s', pour tout a)
+            a_prime = self.get_action(next_obs,  possible_actions) #a'
+            y = reward + self.gamma * q_prime[a_prime] #y = r + gamma * Q(s', a')
+            y_hat = self.q_values.forward(obs)[action] #y_hat = Q(s, a)
+            loss = self.loss(y_hat, y)
+        else:
+            y = torch.tensor(reward).float()
+            y_hat = self.q_values.forward(obs)[action]
+            loss = self.loss(y_hat, y)
+        
+        loss.backward()
+        self.optimizer.step()
+
+        self.epsilon_decay()
+
+
+class Net(nn.Module):
+    def __init__(self):
+        super(Net, self).__init__()
+        self.pad1 = nn.ZeroPad2d((2,2,2,2))
+        self.pad1.padding_mode = 'constant'
+        self.pad1.value = -5
+
+        self.conv1 = nn.Conv2d(in_channels = 1, out_channels = 8, kernel_size = 5, stride = 1)
+        self.fc = nn.Linear(8*6*7, 7)
+    
+    def forward(self, x):
+        x = torch.tensor(x).reshape(1, 6, 7).float()
+        x[x == 2] = -1 #replace 2 (player 2 coins) with -1
+        x = self.pad1(x)
+        x = F.relu(self.conv1(x))
+        x = x.view(-1, 8*6*7)
+        x = self.fc(x)
+        return x.view(-1)
+    
+   
