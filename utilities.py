@@ -5,45 +5,40 @@ def run_episode(env, agent, agent2):
 
     a1r, a2r = 0, 0 #agent 1, 2 rewards
 
-    terminated = False
     state = env.reset()
-    p = 1
-    while not terminated:
+    player = np.random.choice([1, 2]) #randomly choose who goes first
+    winner = 0 #False
 
-        if p == 1:
-
+    while not winner:
+        if player == 1:
             action = agent.get_action(state, env.get_moves())
-            next_state, reward, terminated, info = env.step(action)
-            agent.update(state, action, reward[0], terminated, next_state, env.get_moves())
+            next_state, reward, winner, info = env.step(action, player)
+            a1r += reward
+            agent.update(state, action, reward, winner, next_state, env.get_moves())
             state = next_state
+            player = 2
 
-            if terminated: break
-            p = 2
-
-            a1r += reward[0]
-                
-        elif p == 2:
-
+        elif player == 2:
             action = agent2.get_action(state, env.get_moves())
-            next_state, reward, terminated, info = env.step(action)
-            agent2.update(state, action, reward[1], terminated, next_state, env.get_moves())
+            next_state, reward, winner, info = env.step(action, player)
+            a2r += reward
+            agent2.update(state, action, reward, winner, next_state, env.get_moves())
             state = next_state
+            player = 1
 
-            if terminated: break
-            p = 1
 
-            a2r += reward[1]
-    
-    a1r += reward[0]
-    a2r += reward[1]
-    
-    return a1r, a2r
+    if winner == 1:
+        agent2.update(state, action, -reward, winner, None, None) #agent 2 loses
+        a2r += -reward
+    elif winner == 2:
+        agent.update(state, action, -reward, winner, None, None) #agent 1 loses
+        a1r += -reward
+    elif winner == -1: #if draw
+        if player == 1:
+            agent.update(state, action, reward, winner, None, None) 
+            a1r += reward
+        elif player == 2:
+            agent2.update(state, action, reward, winner, None, None) 
+            a2r += reward
 
-def invert_state(obs):
-    """
-    Invert the state of the board for the second player.
-    """
-    obs[obs == 1] = 3
-    obs[obs == 2] = 1
-    obs[obs == 3] = 2
-    return obs
+    return winner, a1r, a2r

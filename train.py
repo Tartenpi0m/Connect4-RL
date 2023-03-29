@@ -3,7 +3,7 @@ import torch
 from torch.utils.tensorboard import SummaryWriter
 import sys
 from Agent import CNNAgent, BaseAgent
-from env_p4 import Connect4Env
+from envP4 import Connect4Env
 from utilities import run_episode
 
 import tensorboard_logger as tflog
@@ -23,19 +23,19 @@ else:
 writer = SummaryWriter(log_dir='./runs/' + modelname)
 
 
-env = Connect4Env(height=6, width=7, connect=4, reward_draw=0, reward_win=100, reward_step=0, )
+env = Connect4Env(height=6, width=7, connect=4, reward_draw=0, reward_win=100, reward_step=0)
 lr = 0.1
 gamma = 0.9999
 
 
 
-agent = CNNAgent(env.action_space, env.observation_space, gamma=gamma, lr=lr, eps_init=0.2, eps_step=1e-5)
-agent2 = CNNAgent(env.action_space, env.observation_space, gamma=gamma, lr=lr, eps_init=1, eps_step=0)
+agent = CNNAgent(1, env.action_space, env.observation_space, gamma=gamma, lr=lr, eps_init=0.2, eps_step=1e-5)
+agent2 = CNNAgent(2, env.action_space, env.observation_space, gamma=gamma, lr=lr, eps_init=0.2, eps_step=1e-5)
 
 try:
     for i in range(n):
 
-        a1r, a2r = run_episode(env, agent, agent2)
+        winner, a1r, a2r = run_episode(env, agent, agent2)
 
         writer.add_scalar('Agent 1 rewards', a1r, i+offset)
         writer.add_scalar('Agent 2 rewards', a2r, i+offset)
