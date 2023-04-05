@@ -14,3 +14,7 @@ Just create a class which inherite from Base Agent.
 
 Execute tensorboard to monitor metrics (reward, epsilon, and number of plays) while training.  
 `tensorboard --logdir="/runs/"`
+
+## Watch your agent play against himself
+
+Check the notebook exp.py. You can execute the cell beginning with #step several time to make your agent play several chips.
