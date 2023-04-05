@@ -8,23 +8,28 @@ import torch.optim as optim
 
 import numpy as np
 
-class AgentDQNv2(BaseAgent):
+class AgentDQNv3(BaseAgent):
     """
     Deep Q-learning agent implemented with memory replay but no target network.
     """
 
-    def __init__(self, player, action_space, observation_space, gamma=0.99, lr=0.1, eps_init=0.5, eps_min=0.01, eps_step=1e-3, name='DeepAgent', memory_size = 500, batch_size = 64):
+    def __init__(self, player, action_space, observation_space, gamma=0.99, lr=0.1, eps_init=0.5, eps_min=0.01, eps_step=1e-3, name='DeepAgent', memory_size = 500, batch_size = 64, reset_step = 1000):
         self.memory_size = memory_size
         self.batch_size = batch_size
+        self.reset_step = reset_step
         super().__init__(player, action_space, observation_space, gamma, lr, eps_init, eps_min, eps_step, name)
 
 
     def reset(self, player):
+        print("reset")
+
+        self.target_step = 0
 
         #check if cuda is available
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         self.q_values = LinearNet(player).to(self.device)
+        self.target_q_values = LinearNet(player).to(self.device)
         self.optimizer = optim.Adam(self.q_values.parameters(), lr=self.lr)
         self.loss = nn.MSELoss()
 
@@ -41,6 +46,8 @@ class AgentDQNv2(BaseAgent):
     
     def update(self, obs, action, reward, terminated, next_obs, possible_actions):
         self.optimizer.zero_grad()
+
+        self.target_step += 1
 
         #Store transition (s, a, r, s') in replay memory
         if not terminated:
@@ -72,7 +79,7 @@ class AgentDQNv2(BaseAgent):
         with torch.no_grad():
             if not terminated:
                 #Q_value of s' for max of all possible actions
-                next_qvalues = self.q_values.forward(state_prime_minibatch)
+                next_qvalues = self.target_q_values.forward(state_prime_minibatch)
                 for i in range(7): #Set impossible actions to -1000 in order for torch.max to not selection them
                     if i not in possible_actions:
                         next_qvalues[:, i] = -1000
@@ -84,6 +91,11 @@ class AgentDQNv2(BaseAgent):
         loss = self.loss(current_qvalues, target_qvalues)
         loss.backward()
         self.optimizer.step()
+
+        if self.target_step % self.reset_step == 0:
+            self.target_q_values.load_state_dict(self.q_values.state_dict())
+            self.target_step = 0
+            print("Target network updated")
 
 
         self.epsilon_decay()

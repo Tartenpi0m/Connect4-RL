@@ -4,6 +4,62 @@ import torch.nn.functional as F
 import torch.optim as optim
 
 
+class LinearNet(nn.Module):
+    """
+    Simple network with 3 fully connected layer.
+    """
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+
+    def __init__(self, player):
+        super().__init__()
+
+        #adapt the state of the board for the second player (the environnement is not symmetric the network is trained for player 1)
+        if player == 2:
+            self.adapt = self.invert_state
+        else:
+            self.adapt = self.nothin
+
+        self.fc1 = nn.Linear(7*6, 50)
+        self.fc2 = nn.Linear(50, 50)
+        self.fc3 = nn.Linear(50, 50)
+        self.fc4 = nn.Linear(50, 50)
+        self.fc5 = nn.Linear(50, 50)
+        self.fc6 = nn.Linear(50, 50)
+        self.fc7 = nn.Linear(50, 50)
+        self.fc8 = nn.Linear(50, 7)
+       
+
+    def forward(self, x):
+        x = self.adapt(x.clone().detach()).float()
+        x[x == 2] = -1
+        x = x.view(-1, 7*6)
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        x = F.relu(self.fc3(x))
+        x = F.relu(self.fc4(x))
+        x = F.relu(self.fc5(x))
+        x = F.relu(self.fc6(x))
+        x = F.relu(self.fc7(x))
+        x = self.fc8(x)
+        return x
+
+    def invert_state(self, obs):
+        """
+        Invert the state of the board for the second player.
+        """
+        obs[obs == 1] = 3
+        obs[obs == 2] = 1
+        obs[obs == 3] = 2
+        return obs
+    
+    def nothin(self, obs):
+        return obs
+
+
+
+
 class Netv2(nn.Module):
     """
     Second Network tested with 3 convolutional layer and 2 fully connected layer.
@@ -30,8 +86,7 @@ class Netv2(nn.Module):
         self.fc2 = nn.Linear(512, 7)
     
     def forward(self, x):
-        x = self.adapt(x.copy())
-        x = torch.tensor(x).reshape(1, 6, 7).float()
+        x = self.adapt(x.clone().detach()).float()
         x[x == 2] = -1 #adapt player 2 chip to make sens for the network (2 replace by -1)
         x = self.pad1(x)
         x = F.relu(self.conv1(x))
@@ -42,7 +97,7 @@ class Netv2(nn.Module):
         x = x.view(-1, 32*6*7)
         x = F.relu(self.fc1(x))
         x = self.fc2(x)
-        return x.view(-1)
+        return x.view(-1, 7)
         
     
     def invert_state(self, obs):

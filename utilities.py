@@ -8,8 +8,10 @@ def run_episode(env, agent, agent2):
     state = env.reset()
     player = np.random.choice([1, 2]) #randomly choose who goes first
     winner = 0 #False
+    play_n = 0
 
     while not winner:
+        play_n += 1
         if player == 1:
             action = agent.get_action(state, env.get_moves())
             next_state, reward, winner, info = env.step(action, player)
@@ -41,4 +43,4 @@ def run_episode(env, agent, agent2):
             agent2.update(state, action, reward, winner, None, None) 
             a2r += reward
 
-    return winner, a1r, a2r
+    return winner, a1r, a2r, play_n

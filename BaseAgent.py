@@ -50,6 +50,7 @@ class BaseAgent():
             for i in range(len(b)):
                 if i not in possible_actions:
                     b[i] = -np.inf
+            return np.argmax(b)
             return np.random.choice(np.flatnonzero(b == np.max(b)))
         
     def get_action(self, obs, possible_actions, eps=None): 
