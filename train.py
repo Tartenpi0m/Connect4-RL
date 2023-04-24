@@ -32,9 +32,9 @@ import torch
 from envP4 import Connect4Env
 from utilities import run_episode
 
-
 #Select Agent
 from AgentDQNv3 import AgentDQNv3 as Agent
+from CounterAgent import CounterAgent
 
 #Tensorboard writer
 writer = SummaryWriter(log_dir='./runs/' + modelname)
@@ -48,9 +48,12 @@ env = Connect4Env(height=6, width=7, connect=4, reward_draw=0, reward_win=50, re
 agent = Agent(1, env.action_space, env.observation_space, 
               gamma=0.9999, lr=0.01, eps_init=0.7, eps_step=(1e-6)*4, eps_min=0.1, 
               memory_size=500, batch_size=64, reset_step=7000)
+"""
 agent2 = Agent(2, env.action_space, env.observation_space, 
                gamma=0.9999, lr=0.01, eps_init=0.7, eps_step=(1e-6)*4, eps_min=0.1, 
                memory_size=500, batch_size=64, reset_step=7000)
+"""
+agent2 = CounterAgent(2, env.action_space, env.observation_space, lr=0, eps_init=0, eps_step=0, name="player 2")
 
 if qvalues:
     agent.q_values = torch.load("./runs/" + qvalues + '_a1.pt')

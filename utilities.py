@@ -24,13 +24,13 @@ def run_episode(env, agent, agent2):
             action = agent2.get_action(state, env.get_moves())
             next_state, reward, winner, info = env.step(action, player)
             a2r += reward
-            agent2.update(state, action, reward, winner, next_state, env.get_moves())
+            #agent2.update(state, action, reward, winner, next_state, env.get_moves())
             state = next_state
             player = 1
 
 
     if winner == 1:
-        agent2.update(state, action, -reward, winner, None, None) #agent 2 loses
+        #agent2.update(state, action, -reward, winner, None, None) #agent 2 loses
         a2r += -reward
     elif winner == 2:
         agent.update(state, action, -reward, winner, None, None) #agent 1 loses
@@ -40,7 +40,7 @@ def run_episode(env, agent, agent2):
             agent.update(state, action, reward, winner, None, None) 
             a1r += reward
         elif player == 2:
-            agent2.update(state, action, reward, winner, None, None) 
+            #agent2.update(state, action, reward, winner, None, None) 
             a2r += reward
 
     return winner, a1r, a2r, play_n

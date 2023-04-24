@@ -151,3 +151,6 @@ class Connect4Env(gym.Env):
                 s += Fore.RESET
             s += "\n"
         print(s)
+        print()
+        print(self.board)
+        return self.board
